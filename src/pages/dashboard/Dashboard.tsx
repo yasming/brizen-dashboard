@@ -16,6 +16,7 @@ interface Bet {
   Link: string | null;
   Result: number;
   SportName: string;
+  UserName: string | null;
 }
 
 function getClosestDateIndex(dates: string[]) {
@@ -267,81 +268,89 @@ export default function Dashboard() {
               <th style={styles.header}>Aposta</th>
               <th style={styles.header}>Link</th>
               <th style={styles.header}>Resultado</th>
+              <th style={styles.header}>Usuario</th>
               <th style={styles.header}>Editar</th>
               <th style={styles.header}>Deletar</th>
             </tr>
-          </thead>
-          <tbody>
-            {paginatedBets?.map((bet, index) => (
-              <tr key={bet.ID} style={index % 2 === 0 ? styles.row : { ...styles.row, backgroundColor: '#fafafa' }}>
-                <td style={styles.cell}>{new Date(bet.Date.replace('Z', '')).toLocaleDateString('pt-BR')}</td>
-                <td style={styles.cell}>{formatBetTime(bet.Time)}</td>
-                <td style={styles.cell}>{bet.League}</td>
-                <td style={styles.cell}>{bet.SportName}</td>
-                <td style={styles.cell}>{bet.Match}</td>
-                <td style={styles.cell}>{bet.Bet}</td>
-                <td style={styles.cell}>
-                  {bet.Link ? (
-                    <a href={bet.Link} target="_blank" rel="noopener noreferrer" style={styles.link}>Link</a>
-                  ) : '—'}
-                </td>
-                <td style={styles.cell}>
-                  <div style={styles.resultButtons}>
-                    <button
-                      onClick={() => handleResultChange(bet.ID, 1)}
-                      style={{
-                        ...styles.resultButton,
-                        ...(bet.Result === 1 ? styles.resultButtonActive : {}),
-                      }}
-                      title="Win"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => handleResultChange(bet.ID, 0)}
-                      style={{
-                        ...styles.resultButton,
-                        ...(bet.Result === 0 ? styles.resultButtonActiveLose : {}),
-                      }}
-                      title="Lose"
-                    >
-                      ✕
-                    </button>
-                    <button
-                      onClick={() => handleResultChange(bet.ID, 2)}
-                      style={{
-                        ...styles.resultButton,
-                        ...(bet.Result === 2 ? styles.resultButtonActiveReset : {}),
-                      }}
-                      title="Reset"
-                    >
-                      🔁
-                    </button>
-                  </div>
-                </td>
-                <td style={styles.cell}>
-                  <button
-                    style={styles.editButton}
-                    onClick={() => handleEditClick(bet)}
-                    title="Editar"
-                  >
-                    ✏️
-                  </button>
-                </td>
-                <td style={styles.cell}>
-                  <button
-                    style={styles.deleteButton}
-                    onClick={() => handleDeleteClick(bet.ID, bet.Match)}
-                    title="Excluir"
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+	          </thead>
+	          <tbody>
+	            {paginatedBets.length > 0 ? (
+	              paginatedBets.map((bet, index) => (
+	                <tr key={bet.ID} style={index % 2 === 0 ? styles.row : { ...styles.row, backgroundColor: '#fafafa' }}>
+	                  <td style={styles.cell}>{new Date(bet.Date.replace('Z', '')).toLocaleDateString('pt-BR')}</td>
+	                  <td style={styles.cell}>{formatBetTime(bet.Time)}</td>
+	                  <td style={styles.cell}>{bet.League}</td>
+	                  <td style={styles.cell}>{bet.SportName}</td>
+	                  <td style={styles.cell}>{bet.Match}</td>
+	                  <td style={styles.cell}>{bet.Bet}</td>
+	                  <td style={styles.cell}>
+	                    {bet.Link ? (
+	                      <a href={bet.Link} target="_blank" rel="noopener noreferrer" style={styles.link}>Link</a>
+	                    ) : '—'}
+	                  </td>
+		                  <td style={styles.cell}>
+		                    <div style={styles.resultButtons}>
+	                      <button
+	                        onClick={() => handleResultChange(bet.ID, 1)}
+	                        style={{
+	                          ...styles.resultButton,
+	                          ...(bet.Result === 1 ? styles.resultButtonActive : {}),
+	                        }}
+	                        title="Win"
+	                      >
+	                        ✓
+	                      </button>
+	                      <button
+	                        onClick={() => handleResultChange(bet.ID, 0)}
+	                        style={{
+	                          ...styles.resultButton,
+	                          ...(bet.Result === 0 ? styles.resultButtonActiveLose : {}),
+	                        }}
+	                        title="Lose"
+	                      >
+	                        ✕
+	                      </button>
+	                      <button
+	                        onClick={() => handleResultChange(bet.ID, 2)}
+	                        style={{
+	                          ...styles.resultButton,
+	                          ...(bet.Result === 2 ? styles.resultButtonActiveReset : {}),
+	                        }}
+	                        title="Reset"
+	                      >
+	                        🔁
+	                      </button>
+		                    </div>
+		                  </td>
+		                  <td style={styles.cell}>{bet.UserName || '—'}</td>
+		                  <td style={styles.cell}>
+		                    <button
+	                      style={styles.editButton}
+	                      onClick={() => handleEditClick(bet)}
+	                      title="Editar"
+	                    >
+	                      ✏️
+	                    </button>
+	                  </td>
+	                  <td style={styles.cell}>
+	                    <button
+	                      style={styles.deleteButton}
+	                      onClick={() => handleDeleteClick(bet.ID, bet.Match)}
+	                      title="Excluir"
+	                    >
+	                      🗑️
+	                    </button>
+	                  </td>
+	                </tr>
+	              ))
+		            ) : (
+		              <tr style={styles.row}>
+		                <td style={styles.emptyCell} colSpan={11}>Sem apostas cadastradas</td>
+		              </tr>
+		            )}
+	          </tbody>
+	        </table>
+	      </div>
 
       {token && (
         <NovaApostaModal
@@ -458,6 +467,12 @@ const styles = {
     padding: '0.875rem 1rem',
     fontSize: '0.875rem',
     color: '#09090b',
+  } as const,
+  emptyCell: {
+    padding: '1.5rem 1rem',
+    fontSize: '0.875rem',
+    color: '#6b7280',
+    textAlign: 'center' as const,
   } as const,
   link: {
     color: '#2563eb',

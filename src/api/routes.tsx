@@ -31,7 +31,7 @@ export const getBets = async (token: string) => {
   });
   handleUnauthorized(response);
   const data = await response.json();
-  return data.bets;
+  return Array.isArray(data?.bets) ? data.bets : [];
 };
 
 

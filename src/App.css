@@ -1,0 +1,61 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+input:hover {
+  border-color: #e4e4e7;
+}
+
+input:focus {
+  border-color: #3b82f6;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+button:hover {
+  background-color: #27272a;
+}
+
+a:hover {
+  text-decoration-color: #09090b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dark-input {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .dark-input:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark-input:focus {
+    border-color: #3b82f6;
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  .dark-button {
+    background-color: #52525b;
+  }
+
+  .dark-button:hover {
+    background-color: #71717a;
+  }
+
+  .dark-link {
+    color: #a1a1aa;
+  }
+
+  .dark-link:hover {
+    color: white;
+    text-decoration-color: white;
+  }
+
+  .dark-card {
+    background-color: #09090b;
+  }
+}

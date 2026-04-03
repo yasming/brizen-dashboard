@@ -42,7 +42,7 @@ function LoginPage() {
     <div style={styles.container}>
       <div style={styles.card}>
         <form style={styles.form} onSubmit={handleSubmit}>
-          <h1 style={styles.logo}>BestPicks</h1>
+          <h1 style={styles.logo}>Brizen</h1>
 
           {error && <div style={styles.error}>{error}</div>}
 

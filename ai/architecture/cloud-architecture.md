@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the cloud infrastructure architecture for the Best Picks Dashboard project hosted on AWS.
+This document describes the cloud infrastructure architecture for the Brizen Dashboard project hosted on AWS.
 
 ## Architecture Diagram
 

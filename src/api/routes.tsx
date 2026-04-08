@@ -46,7 +46,20 @@ export const getSports = async (token: string) => {
   return data.sports;
 };
 
-export const createBet = async (token: string, betData: { date: string; time: string | null; league: string; match: string; bet: string; link: string | null; sport_id: number }) => {
+export interface BetPayload {
+  date: string;
+  event: string;
+  bet: string;
+  odd: string | null;
+  fair_odd: string | null;
+  closing_odd: string | null;
+  clv: string | null;
+  value: string | null;
+  lucro: string | null;
+  total: string | null;
+}
+
+export const createBet = async (token: string, betData: BetPayload) => {
   const response = await fetch(`${API_URL}/bets`, {
     method: 'POST',
     headers: {
@@ -82,7 +95,7 @@ export const updateBetResult = async (token: string, betId: number, result: numb
   return response.json();
 };
 
-export const updateBet = async (token: string, betId: number, betData: { date: string; time: string | null; league: string; match: string; bet: string; link: string | null; sport_id: number }) => {
+export const updateBet = async (token: string, betId: number, betData: BetPayload) => {
   const response = await fetch(`${API_URL}/bets/${betId}`, {
     method: 'PUT',
     headers: {

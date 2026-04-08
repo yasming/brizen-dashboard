@@ -1,5 +1,5 @@
 import {useEffect, useState, useMemo, useRef} from 'react';
-import {getBets, updateBetResult, deleteBet} from '../../api/routes.tsx';
+import {getBets, deleteBet, updateBetResult} from '../../api/routes.tsx';
 import {useAuth} from '../../context/useAuth.ts';
 import NovaApostaModal from './components/NewBetModal.tsx';
 import DeleteConfirmModal from './components/DeleteConfirmModal.tsx';
@@ -9,15 +9,46 @@ import BestCharts from './components/BestCharts.tsx';
 interface Bet {
   ID: number;
   Date: string;
-  Time: string | null;
-  League: string;
-  Match: string;
+  Event: string;
   Bet: string;
-  Link: string | null;
+  Odd: string;
+  FairOdd: string | null;
+  ClosingOdd: string | null;
+  Value: string | null;
+  Lucro: string | null;
+  Total: string | null;
   Result: number;
-  SportName: string;
   UserName: string | null;
+  // snake_case from API
+  event?: string;
+  bet?: string;
+  odd?: string;
+  fair_odd?: string | null;
+  closing_odd?: string | null;
+  CLV?: string | null;
+  clv?: string | null;
+  value?: string | null;
+  lucro?: string | null;
+  total?: string | null;
+  date?: string;
+  result?: number;
+  id?: number;
 }
+
+const f = {
+  id: (b: Bet) => b.ID ?? b.id ?? 0,
+  date: (b: Bet) => b.Date ?? '',
+  event: (b: Bet) => b.Event ?? '',
+  bet: (b: Bet) => b.Bet ?? '',
+  odd: (b: Bet) => b.Odd ?? '',
+  fairOdd: (b: Bet) => b.FairOdd ?? '',
+  closingOdd: (b: Bet) => b.ClosingOdd ?? '',
+  clv: (b: Bet) => b.CLV ?? b.clv ?? '',
+  value: (b: Bet) => b.Value ?? '',
+  lucro: (b: Bet) => b.Lucro ?? '',
+  total: (b: Bet) => b.Total ?? '',
+  result: (b: Bet) => b.Result ?? -1,
+};
 
 function getClosestDateIndex(dates: string[]) {
   const today = new Intl.DateTimeFormat('en-CA', {
@@ -65,12 +96,15 @@ export default function Dashboard() {
 
   const [formData, setFormData] = useState({
     data: getTodayFormatted(),
-    tempo: '',
-    liga: '',
-    partida: '',
+    evento: '',
     aposta: '',
-    link: '',
-    esporte: '1',
+    odd: '',
+    fairOdd: '',
+    closingOdd: '',
+    clv: '',
+    value: '',
+    lucro: '',
+    total: '',
   });
   const [currentDateIndex, setCurrentDateIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 640px)').matches);
@@ -85,18 +119,13 @@ export default function Dashboard() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const formatBetTime = (time: string | null) => {
-    if (!time) return '-';
-    return time.slice(0, 5);
-  };
-
   useEffect(() => {
     if (!token) return;
     const fetchBets = async () => {
       const data = await getBets(token);
       setBets(data);
       if (!hasInitialized.current) {
-        const dates = [...new Set(data.map((bet: Bet) => bet.Date.split('T')[0]))] as string[];
+        const dates = [...new Set(data.map((bet: Bet) => f.date(bet).split('T')[0]))] as string[];
         dates.sort();
         setCurrentDateIndex(getClosestDateIndex(dates));
         hasInitialized.current = true;
@@ -106,7 +135,7 @@ export default function Dashboard() {
   }, [token]);
 
   const uniqueDates = useMemo(() => {
-    const dates = bets.map(bet => bet.Date.split('T')[0]);
+    const dates = bets.map(bet => f.date(bet).split('T')[0]);
     return [...new Set(dates)].sort();
   }, [bets]);
 
@@ -121,7 +150,7 @@ export default function Dashboard() {
   };
   const paginatedBets = useMemo(() => {
     if (!currentDate) return bets;
-    return bets.filter(bet => bet.Date.startsWith(currentDate));
+    return bets.filter(bet => f.date(bet).startsWith(currentDate));
   }, [bets, currentDate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -135,13 +164,6 @@ export default function Dashboard() {
         formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
       }
       setFormData({ ...formData, data: formatted });
-    } else if (name === 'tempo') {
-      const digits = value.replace(/\D/g, '').slice(0, 4);
-      let formatted = digits;
-      if (digits.length > 2) {
-        formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-      }
-      setFormData({ ...formData, tempo: formatted });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -149,14 +171,14 @@ export default function Dashboard() {
 
   const handleSuccess = () => {
     setIsModalOpen(false);
-    setFormData({ data: getTodayFormatted(), tempo: '', liga: '', partida: '', aposta: '', link: '', esporte: '1' });
+    setFormData({ data: getTodayFormatted(), evento: '', aposta: '', odd: '', fairOdd: '', closingOdd: '', clv: '', value: '', lucro: '', total: '' });
   };
 
   const handleDateChangeFromModal = (dateStr: string) => {
     const parts = dateStr.split('/');
     if (parts.length === 3) {
       const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      const allDates = [...new Set([...bets.map(bet => bet.Date.split('T')[0]), isoDate])].sort();
+      const allDates = [...new Set([...bets.map(bet => f.date(bet).split('T')[0]), isoDate])].sort();
       const idx = allDates.indexOf(isoDate);
       setCurrentDateIndex(idx);
     }
@@ -165,9 +187,7 @@ export default function Dashboard() {
   const handleResultChange = async (betId: number, result: number) => {
     if (!token) return;
     await updateBetResult(token, betId, result);
-    setBets(bets.map(bet => 
-      bet.ID === betId ? { ...bet, Result: result } : bet
-    ));
+    setBets(bets.map(bet => f.id(bet) === betId ? { ...bet, Result: result, result } : bet));
   };
 
   const handleEditClick = (bet: Bet) => {
@@ -183,10 +203,10 @@ export default function Dashboard() {
   const handleConfirmDelete = async () => {
     if (!token || !betToDelete) return;
     await deleteBet(token, betToDelete.id);
-    const newBets = bets.filter(bet => bet.ID !== betToDelete.id);
+    const newBets = bets.filter(bet => f.id(bet) !== betToDelete.id);
     setBets(newBets);
-    const newDates = [...new Set(newBets.map(bet => bet.Date.split('T')[0]))].sort();
-    const currentDateStillHasBets = newBets.some(bet => bet.Date.startsWith(currentDate));
+    const newDates = [...new Set(newBets.map(bet => f.date(bet).split('T')[0]))].sort();
+    const currentDateStillHasBets = newBets.some(bet => f.date(bet).startsWith(currentDate));
     if (!currentDateStillHasBets && newDates.length > 0) {
       const newIndex = newDates.indexOf(currentDate);
       if (newIndex === -1 || newIndex >= newDates.length) {
@@ -261,96 +281,69 @@ export default function Dashboard() {
           <thead>
             <tr style={styles.tableHeaderRow}>
               <th style={styles.header}>Data</th>
-              <th style={styles.header}>Hora</th>
-              <th style={styles.header}>Liga</th>
-              <th style={styles.header}>Esporte</th>
-              <th style={styles.header}>Partida</th>
+              <th style={styles.header}>Evento</th>
               <th style={styles.header}>Aposta</th>
-              <th style={styles.header}>Link</th>
+              <th style={styles.header}>Odd</th>
+              <th style={styles.header}>Fair Odd</th>
+              <th style={styles.header}>Closing Odd</th>
+              <th style={styles.header}>Value</th>
+              <th style={styles.header}>CLV</th>
+              <th style={styles.header}>Lucro</th>
+              <th style={styles.header}>Total</th>
               <th style={styles.header}>Resultado</th>
-              <th style={styles.header}>Usuario</th>
               <th style={styles.header}>Editar</th>
               <th style={styles.header}>Deletar</th>
             </tr>
-	          </thead>
-	          <tbody>
-	            {paginatedBets.length > 0 ? (
-	              paginatedBets.map((bet, index) => (
-	                <tr key={bet.ID} style={index % 2 === 0 ? styles.row : { ...styles.row, backgroundColor: '#fafafa' }}>
-	                  <td style={styles.cell}>{new Date(bet.Date.replace('Z', '')).toLocaleDateString('pt-BR')}</td>
-	                  <td style={styles.cell}>{formatBetTime(bet.Time)}</td>
-	                  <td style={styles.cell}>{bet.League}</td>
-	                  <td style={styles.cell}>{bet.SportName}</td>
-	                  <td style={styles.cell}>{bet.Match}</td>
-	                  <td style={styles.cell}>{bet.Bet}</td>
-	                  <td style={styles.cell}>
-	                    {bet.Link ? (
-	                      <a href={bet.Link} target="_blank" rel="noopener noreferrer" style={styles.link}>Link</a>
-	                    ) : '—'}
-	                  </td>
-		                  <td style={styles.cell}>
-		                    <div style={styles.resultButtons}>
-	                      <button
-	                        onClick={() => handleResultChange(bet.ID, 1)}
-	                        style={{
-	                          ...styles.resultButton,
-	                          ...(bet.Result === 1 ? styles.resultButtonActive : {}),
-	                        }}
-	                        title="Win"
-	                      >
-	                        ✓
-	                      </button>
-	                      <button
-	                        onClick={() => handleResultChange(bet.ID, 0)}
-	                        style={{
-	                          ...styles.resultButton,
-	                          ...(bet.Result === 0 ? styles.resultButtonActiveLose : {}),
-	                        }}
-	                        title="Lose"
-	                      >
-	                        ✕
-	                      </button>
-	                      <button
-	                        onClick={() => handleResultChange(bet.ID, 2)}
-	                        style={{
-	                          ...styles.resultButton,
-	                          ...(bet.Result === 2 ? styles.resultButtonActiveReset : {}),
-	                        }}
-	                        title="Reset"
-	                      >
-	                        🔁
-	                      </button>
-		                    </div>
-		                  </td>
-		                  <td style={styles.cell}>{bet.UserName || '—'}</td>
-		                  <td style={styles.cell}>
-		                    <button
-	                      style={styles.editButton}
-	                      onClick={() => handleEditClick(bet)}
-	                      title="Editar"
-	                    >
-	                      ✏️
-	                    </button>
-	                  </td>
-	                  <td style={styles.cell}>
-	                    <button
-	                      style={styles.deleteButton}
-	                      onClick={() => handleDeleteClick(bet.ID, bet.Match)}
-	                      title="Excluir"
-	                    >
-	                      🗑️
-	                    </button>
-	                  </td>
-	                </tr>
-	              ))
-		            ) : (
-		              <tr style={styles.row}>
-		                <td style={styles.emptyCell} colSpan={11}>Sem apostas cadastradas</td>
-		              </tr>
-		            )}
-	          </tbody>
-	        </table>
-	      </div>
+          </thead>
+          <tbody>
+            {paginatedBets.length > 0 ? (
+              paginatedBets.map((bet, index) => (
+                <tr key={f.id(bet)} style={index % 2 === 0 ? styles.row : { ...styles.row, backgroundColor: '#fafafa' }}>
+                  <td style={styles.cell}>{new Date(f.date(bet).replace('Z', '')).toLocaleDateString('pt-BR')}</td>
+                  <td style={styles.cell}>{f.event(bet)}</td>
+                  <td style={styles.cell}>{f.bet(bet)}</td>
+                  <td style={styles.cell}>{f.odd(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.fairOdd(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.closingOdd(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.value(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.clv(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.lucro(bet) || '-'}</td>
+                  <td style={styles.cell}>{f.total(bet) || '-'}</td>
+                  <td style={styles.cell}>
+                    <div style={styles.resultButtons}>
+                      <button
+                        onClick={() => handleResultChange(f.id(bet), 1)}
+                        style={{ ...styles.resultButton, ...(f.result(bet) === 1 ? styles.resultButtonActive : {}) }}
+                        title="Win"
+                      >✓</button>
+                      <button
+                        onClick={() => handleResultChange(f.id(bet), 0)}
+                        style={{ ...styles.resultButton, ...(f.result(bet) === 0 ? styles.resultButtonActiveLose : {}) }}
+                        title="Lose"
+                      >✕</button>
+                      <button
+                        onClick={() => handleResultChange(f.id(bet), 2)}
+                        style={{ ...styles.resultButton, ...(f.result(bet) === 2 ? styles.resultButtonActiveReset : {}) }}
+                        title="Reset"
+                      >🔁</button>
+                    </div>
+                  </td>
+                  <td style={styles.cell}>
+                    <button style={styles.editButton} onClick={() => handleEditClick(bet)} title="Editar">✏️</button>
+                  </td>
+                  <td style={styles.cell}>
+                    <button style={styles.deleteButton} onClick={() => handleDeleteClick(f.id(bet), f.event(bet))} title="Excluir">🗑️</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr style={styles.row}>
+                <td style={styles.emptyCell} colSpan={13}>Sem apostas cadastradas</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {token && (
         <NovaApostaModal

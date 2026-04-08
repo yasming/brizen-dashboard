@@ -1,16 +1,23 @@
 import {useMemo} from 'react';
-import {PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip, type TooltipProps} from 'recharts';
+import {PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, type TooltipProps} from 'recharts';
 import type {ValueType, NameType} from 'recharts/types/component/DefaultTooltipContent';
 
 interface Bet {
-  ID: number;
-  Date: string;
-  League: string;
-  Match: string;
-  Bet: string;
-  Result: number;
-  SportName: string;
+  ID?: number;
+  id?: number;
+  Date?: string;
+  date?: string;
+  League?: string;
+  Match?: string;
+  Bet?: string;
+  bet?: string;
+  Result?: number;
+  result?: number;
+  SportName?: string;
 }
+
+const getDate = (b: Bet) => b.Date ?? b.date ?? '';
+const getResult = (b: Bet) => b.Result ?? b.result ?? -1;
 
 interface BestChartsProps {
   allBets: Bet[];
@@ -31,9 +38,9 @@ function computeStats(bets: Bet[]) {
   let pending = 0;
   let resets = 0;
   for (const bet of bets) {
-    if (bet.Result === 1) wins++;
-    else if (bet.Result === 0) losses++;
-    else if (bet.Result === 2) resets++;
+    if (getResult(bet) === 1) wins++;
+    else if (getResult(bet) === 0) losses++;
+    else if (getResult(bet) === 2) resets++;
     else pending++;
   }
   return {wins, losses, pending, resets, total: bets.length};
@@ -48,36 +55,9 @@ function buildChartData(stats: {wins: number; losses: number; pending: number; r
   return data;
 }
 
-const SPORT_COLORS = ['#6366f1', '#06b6d4', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
-
-function computeSportWinRates(bets: Bet[]) {
-  const sportMap: Record<string, {wins: number; resolved: number}> = {};
-  for (const bet of bets) {
-    const sport = bet.SportName || 'Desconhecido';
-    if (!sportMap[sport]) sportMap[sport] = {wins: 0, resolved: 0};
-    if (bet.Result === 1) {
-      sportMap[sport].wins++;
-      sportMap[sport].resolved++;
-    } else if (bet.Result === 0) {
-      sportMap[sport].resolved++;
-    }
-  }
-  return Object.entries(sportMap)
-    .filter(([, s]) => s.resolved > 0)
-    .map(([name, s]) => ({
-      name,
-      rate: Number(((s.wins / s.resolved) * 100).toFixed(1)),
-      wins: s.wins,
-      resolved: s.resolved,
-    }))
-    .sort((a, b) => b.rate - a.rate);
-}
-
 export default function BestCharts({allBets, dayBets, currentDate}: BestChartsProps) {
   const allTimeStats = useMemo(() => computeStats(allBets), [allBets]);
   const dayStats = useMemo(() => computeStats(dayBets), [dayBets]);
-  const sportData = useMemo(() => computeSportWinRates(allBets), [allBets]);
-  const daySportData = useMemo(() => computeSportWinRates(dayBets), [dayBets]);
 
   const now = new Date();
   const currentMonth = new Intl.DateTimeFormat('en-CA', {
@@ -87,7 +67,7 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
   }).format(now);
 
   const monthBets = useMemo(() => {
-    return allBets.filter(bet => bet.Date.startsWith(currentMonth));
+    return allBets.filter(bet => getDate(bet).startsWith(currentMonth));
   }, [allBets, currentMonth]);
 
   const monthStats = useMemo(() => computeStats(monthBets), [monthBets]);
@@ -101,17 +81,6 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
     year: 'numeric',
   }).format(now);
   const capitalizedMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
-
-  const sportColorMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    const allSports = new Set([...sportData.map(s => s.name), ...daySportData.map(s => s.name)]);
-    let i = 0;
-    for (const sport of allSports) {
-      map[sport] = SPORT_COLORS[i % SPORT_COLORS.length];
-      i++;
-    }
-    return map;
-  }, [sportData, daySportData]);
 
   const allTimeData = useMemo(() => buildChartData(allTimeStats), [allTimeStats]);
   const dayData = useMemo(() => buildChartData(dayStats), [dayStats]);
@@ -304,78 +273,6 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
           </>
         ) : (
           <p style={styles.empty}>Sem dados para este dia</p>
-        )}
-      </div>
-
-      <div style={styles.chartCard}>
-        <h3 style={styles.chartTitle}>Acerto por Esporte — {formattedDate || 'Dia Atual'}</h3>
-        <p style={styles.chartSubtitle}>{daySportData.length} esportes</p>
-        {daySportData.length > 0 ? (
-          <>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={daySportData} layout="vertical" margin={{left: 10, right: 20}}>
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={12} />
-                <YAxis type="category" dataKey="name" width={80} fontSize={12} />
-                <Tooltip
-                  formatter={((value: ValueType) => [`${value}%`, 'Taxa de acerto']) as TooltipProps<ValueType, NameType>['formatter']}
-                  contentStyle={styles.tooltip}
-                />
-                <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={24}>
-                  {daySportData.map((entry) => (
-                    <Cell key={entry.name} fill={sportColorMap[entry.name]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={styles.statsRow}>
-              {daySportData.map((sport) => (
-                <span
-                  key={sport.name}
-                  style={{...styles.statBadge, backgroundColor: `${sportColorMap[sport.name]}20`, color: sportColorMap[sport.name]}}
-                >
-                  {sport.name} {sport.rate}%
-                </span>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p style={styles.empty}>Sem dados para este dia</p>
-        )}
-      </div>
-
-      <div style={styles.chartCard}>
-        <h3 style={styles.chartTitle}>Acerto por Esporte</h3>
-        <p style={styles.chartSubtitle}>{sportData.length} esportes</p>
-        {sportData.length > 0 ? (
-          <>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={sportData} layout="vertical" margin={{left: 10, right: 20}}>
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={12} />
-                <YAxis type="category" dataKey="name" width={80} fontSize={12} />
-                <Tooltip
-                  formatter={((value: ValueType) => [`${value}%`, 'Taxa de acerto']) as TooltipProps<ValueType, NameType>['formatter']}
-                  contentStyle={styles.tooltip}
-                />
-                <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={24}>
-                  {sportData.map((entry) => (
-                    <Cell key={entry.name} fill={sportColorMap[entry.name]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={styles.statsRow}>
-              {sportData.map((sport) => (
-                <span
-                  key={sport.name}
-                  style={{...styles.statBadge, backgroundColor: `${sportColorMap[sport.name]}20`, color: sportColorMap[sport.name]}}
-                >
-                  {sport.name} {sport.rate}%
-                </span>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p style={styles.empty}>Sem dados</p>
         )}
       </div>
     </div>

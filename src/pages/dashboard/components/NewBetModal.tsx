@@ -1,10 +1,4 @@
-import {useEffect, useState} from 'react';
-import {createBet, getSports} from '../../../api/routes.tsx';
-
-interface Sport {
-  id: number;
-  name: string;
-}
+import {createBet} from '../../../api/routes.tsx';
 
 interface NewBetModalProps {
   isOpen: boolean;
@@ -12,12 +6,15 @@ interface NewBetModalProps {
   token: string;
   formData: {
     data: string;
-    tempo: string;
-    liga: string;
-    partida: string;
+    evento: string;
     aposta: string;
-    link: string;
-    esporte: string;
+    odd: string;
+    fairOdd: string;
+    closingOdd: string;
+    clv: string;
+    value: string;
+    lucro: string;
+    total: string;
   };
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onSuccess: () => void;
@@ -26,29 +23,21 @@ interface NewBetModalProps {
 }
 
 export default function NewBetModal({ isOpen, onClose, token, formData, onInputChange, onSuccess, onRefreshBets, onDateChange }: NewBetModalProps) {
-  const [sports, setSports] = useState<Sport[]>([]);
-
-  useEffect(() => {
-    if (!isOpen || !token) return;
-    const fetchSports = async () => {
-      const data = await getSports(token);
-      setSports(data);
-    };
-    fetchSports();
-  }, [isOpen, token]);
-
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await createBet(token, {
       date: formData.data,
-      time: formData.tempo || null,
-      league: formData.liga,
-      match: formData.partida,
+      event: formData.evento,
       bet: formData.aposta,
-      link: formData.link || null,
-      sport_id: Number(formData.esporte),
+      odd: formData.odd,
+      fair_odd: formData.fairOdd || null,
+      closing_odd: formData.closingOdd || null,
+      clv: formData.clv || null,
+      value: formData.value || null,
+      lucro: formData.lucro || null,
+      total: formData.total || null,
     });
     onDateChange(formData.data);
     onSuccess();
@@ -69,60 +58,14 @@ export default function NewBetModal({ isOpen, onClose, token, formData, onInputC
               onChange={onInputChange}
               placeholder="dd/mm/yyyy"
               style={styles.input}
-              required
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Hora</label>
+            <label style={styles.label}>Evento</label>
             <input
               type="text"
-              name="tempo"
-              value={formData.tempo}
-              onChange={onInputChange}
-              placeholder="HH:MM"
-              inputMode="numeric"
-              maxLength={5}
-              pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$"
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Esporte</label>
-            <div style={styles.selectWrapper}>
-              <select
-                name="esporte"
-                value={formData.esporte}
-                onChange={onInputChange}
-                style={styles.select}
-                required
-              >
-                {sports.map((sport) => (
-                  <option key={sport.id} value={sport.id}>
-                    {sport.name}
-                  </option>
-                ))}
-              </select>
-              <span style={styles.selectArrow}>▾</span>
-            </div>
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>League</label>
-            <input
-              type="text"
-              name="liga"
-              value={formData.liga}
-              onChange={onInputChange}
-              placeholder="Brasileirão"
-              style={styles.input}
-              required
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Match</label>
-            <input
-              type="text"
-              name="partida"
-              value={formData.partida}
+              name="evento"
+              value={formData.evento}
               onChange={onInputChange}
               placeholder="Flamengo x Fluminense"
               style={styles.input}
@@ -130,7 +73,7 @@ export default function NewBetModal({ isOpen, onClose, token, formData, onInputC
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Bet</label>
+            <label style={styles.label}>Aposta</label>
             <input
               type="text"
               name="aposta"
@@ -142,13 +85,80 @@ export default function NewBetModal({ isOpen, onClose, token, formData, onInputC
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Link</label>
+            <label style={styles.label}>Odd</label>
             <input
               type="text"
-              name="link"
-              value={formData.link}
+              name="odd"
+              value={formData.odd}
               onChange={onInputChange}
-              placeholder="https://..."
+              placeholder="1.85"
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Fair Odd</label>
+            <input
+              type="text"
+              name="fairOdd"
+              value={formData.fairOdd}
+              onChange={onInputChange}
+              placeholder="1.75"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Closing Odd</label>
+            <input
+              type="text"
+              name="closingOdd"
+              value={formData.closingOdd}
+              onChange={onInputChange}
+              placeholder="1.80"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>CLV</label>
+            <input
+              type="text"
+              name="clv"
+              value={formData.clv}
+              onChange={onInputChange}
+              placeholder="+2.78%"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Value</label>
+            <input
+              type="text"
+              name="value"
+              value={formData.value}
+              onChange={onInputChange}
+              placeholder="+5.71%"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Lucro</label>
+            <input
+              type="text"
+              name="lucro"
+              value={formData.lucro}
+              onChange={onInputChange}
+              placeholder="0.85"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Total</label>
+            <input
+              type="text"
+              name="total"
+              value={formData.total}
+              onChange={onInputChange}
+              placeholder="12.50"
               style={styles.input}
             />
           </div>
@@ -216,32 +226,6 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     color: '#09090b',
     outline: 'none',
-  } as const,
-  selectWrapper: {
-    position: 'relative' as const,
-  } as const,
-  select: {
-    width: '100%',
-    padding: '0.5rem 2.5rem 0.5rem 0.875rem',
-    fontSize: '0.875rem',
-    border: '1px solid #e4e4e7',
-    borderRadius: '0.375rem',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    color: '#09090b',
-    outline: 'none',
-    cursor: 'pointer',
-    height: '2.375rem',
-    appearance: 'none' as const,
-    WebkitAppearance: 'none' as const,
-  } as const,
-  selectArrow: {
-    position: 'absolute' as const,
-    right: '0.875rem',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none' as const,
-    color: '#09090b',
-    fontSize: '1.1rem',
   } as const,
   modalButtons: {
     display: 'flex',

@@ -1,21 +1,21 @@
-import {useEffect, useState} from 'react';
-import {updateBet, getSports} from '../../../api/routes.tsx';
-
-interface Sport {
-  id: number;
-  name: string;
-}
+import {type ChangeEvent, type FormEvent, useEffect, useState} from 'react';
+import {updateBet} from '../../../api/routes.tsx';
 
 interface Bet {
-  ID: number;
-  Date: string;
-  Time: string | null;
-  League: string;
-  Match: string;
-  Bet: string;
-  Link: string | null;
-  Result: number;
-  SportName: string;
+  ID?: number;
+  id?: number | string | null;
+  Date?: string;
+  date?: string;
+  Event?: string;
+  Bet?: string;
+  Odd?: string | number;
+  FairOdd?: string | number | null;
+  ClosingOdd?: string | number | null;
+  CLV?: string | null;
+  Value?: string | null;
+  Lucro?: string | null;
+  Total?: string | null;
+  Result?: number;
 }
 
 interface EditBetModalProps {
@@ -27,50 +27,49 @@ interface EditBetModalProps {
 }
 
 export default function EditBetModal({ isOpen, onClose, token, bet, onRefreshBets }: EditBetModalProps) {
-  const [sports, setSports] = useState<Sport[]>([]);
   const [formData, setFormData] = useState({
     data: '',
-    tempo: '',
-    liga: '',
-    partida: '',
+    evento: '',
     aposta: '',
-    link: '',
-    esporte: '1',
+    odd: '',
+    fairOdd: '',
+    closingOdd: '',
+    clv: '',
+    value: '',
+    lucro: '',
+    total: '',
   });
 
   useEffect(() => {
-    if (!isOpen || !token) return;
-    const fetchSports = async () => {
-      const data = await getSports(token);
-      setSports(data);
-    };
-    fetchSports();
-  }, [isOpen, token]);
-
-  useEffect(() => {
     if (!bet || !isOpen) return;
-    const dateObj = new Date(bet.Date.replace('Z', ''));
+    const rawDate = bet.Date ?? bet.date ?? '';
+    const dateObj = new Date(rawDate.replace('Z', ''));
     const day = String(dateObj.getDate()).padStart(2, '0');
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const year = dateObj.getFullYear();
     const formattedDate = `${day}/${month}/${year}`;
 
-    const sport = sports.find(s => s.name === bet.SportName);
+    const odd = bet.Odd;
+    const fairOdd = bet.FairOdd;
+    const closingOdd = bet.ClosingOdd;
 
     setFormData({
       data: formattedDate,
-      tempo: bet.Time ? bet.Time.slice(0, 5) : '',
-      liga: bet.League,
-      partida: bet.Match,
-      aposta: bet.Bet,
-      link: bet.Link || '',
-      esporte: sport ? String(sport.id) : '1',
+      evento: bet.Event ?? '',
+      aposta: bet.Bet ?? '',
+      odd: odd != null ? String(odd) : '',
+      fairOdd: fairOdd != null ? String(fairOdd) : '',
+      closingOdd: closingOdd != null ? String(closingOdd) : '',
+      clv: bet.CLV ?? '',
+      value: bet.Value ?? '',
+      lucro: bet.Lucro ?? '',
+      total: bet.Total ?? '',
     });
-  }, [bet, isOpen, sports]);
+  }, [bet, isOpen]);
 
   if (!isOpen || !bet) return null;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'data') {
       const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -81,28 +80,27 @@ export default function EditBetModal({ isOpen, onClose, token, bet, onRefreshBet
         formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
       }
       setFormData(prev => ({ ...prev, data: formatted }));
-    } else if (name === 'tempo') {
-      const digits = value.replace(/\D/g, '').slice(0, 4);
-      let formatted = digits;
-      if (digits.length > 2) {
-        formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-      }
-      setFormData(prev => ({ ...prev, tempo: formatted }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await updateBet(token, bet.ID, {
+    const betId = Number(bet.ID ?? bet.id);
+    if (Number.isNaN(betId)) return;
+
+    await updateBet(token, betId, {
       date: formData.data,
-      time: formData.tempo || null,
-      league: formData.liga,
-      match: formData.partida,
+      event: formData.evento,
       bet: formData.aposta,
-      link: formData.link || null,
-      sport_id: Number(formData.esporte),
+      odd: formData.odd.trim() || null,
+      fair_odd: formData.fairOdd.trim() || null,
+      closing_odd: formData.closingOdd.trim() || null,
+      clv: formData.clv || null,
+      value: formData.value || null,
+      lucro: formData.lucro || null,
+      total: formData.total || null,
     });
     onClose();
     onRefreshBets();
@@ -122,60 +120,14 @@ export default function EditBetModal({ isOpen, onClose, token, bet, onRefreshBet
               onChange={handleInputChange}
               placeholder="dd/mm/yyyy"
               style={styles.input}
-              required
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Hora</label>
+            <label style={styles.label}>Evento</label>
             <input
               type="text"
-              name="tempo"
-              value={formData.tempo}
-              onChange={handleInputChange}
-              placeholder="HH:MM"
-              inputMode="numeric"
-              maxLength={5}
-              pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$"
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Esporte</label>
-            <div style={styles.selectWrapper}>
-              <select
-                name="esporte"
-                value={formData.esporte}
-                onChange={handleInputChange}
-                style={styles.select}
-                required
-              >
-                {sports.map((sport) => (
-                  <option key={sport.id} value={sport.id}>
-                    {sport.name}
-                  </option>
-                ))}
-              </select>
-              <span style={styles.selectArrow}>▾</span>
-            </div>
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>League</label>
-            <input
-              type="text"
-              name="liga"
-              value={formData.liga}
-              onChange={handleInputChange}
-              placeholder="Brasileirão"
-              style={styles.input}
-              required
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Match</label>
-            <input
-              type="text"
-              name="partida"
-              value={formData.partida}
+              name="evento"
+              value={formData.evento}
               onChange={handleInputChange}
               placeholder="Flamengo x Fluminense"
               style={styles.input}
@@ -183,7 +135,7 @@ export default function EditBetModal({ isOpen, onClose, token, bet, onRefreshBet
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Bet</label>
+            <label style={styles.label}>Aposta</label>
             <input
               type="text"
               name="aposta"
@@ -195,13 +147,80 @@ export default function EditBetModal({ isOpen, onClose, token, bet, onRefreshBet
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Link</label>
+            <label style={styles.label}>Odd</label>
             <input
               type="text"
-              name="link"
-              value={formData.link}
+              name="odd"
+              value={formData.odd}
               onChange={handleInputChange}
-              placeholder="https://..."
+              placeholder="1.85"
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Fair Odd</label>
+            <input
+              type="text"
+              name="fairOdd"
+              value={formData.fairOdd}
+              onChange={handleInputChange}
+              placeholder="1.75"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Closing Odd</label>
+            <input
+              type="text"
+              name="closingOdd"
+              value={formData.closingOdd}
+              onChange={handleInputChange}
+              placeholder="1.80"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>CLV</label>
+            <input
+              type="text"
+              name="clv"
+              value={formData.clv}
+              onChange={handleInputChange}
+              placeholder="+2.78%"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Value</label>
+            <input
+              type="text"
+              name="value"
+              value={formData.value}
+              onChange={handleInputChange}
+              placeholder="+5.71%"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Lucro</label>
+            <input
+              type="text"
+              name="lucro"
+              value={formData.lucro}
+              onChange={handleInputChange}
+              placeholder="0.85"
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Total</label>
+            <input
+              type="text"
+              name="total"
+              value={formData.total}
+              onChange={handleInputChange}
+              placeholder="12.50"
               style={styles.input}
             />
           </div>
@@ -269,32 +288,6 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     color: '#09090b',
     outline: 'none',
-  } as const,
-  selectWrapper: {
-    position: 'relative' as const,
-  } as const,
-  select: {
-    width: '100%',
-    padding: '0.5rem 2.5rem 0.5rem 0.875rem',
-    fontSize: '0.875rem',
-    border: '1px solid #e4e4e7',
-    borderRadius: '0.375rem',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    color: '#09090b',
-    outline: 'none',
-    cursor: 'pointer',
-    height: '2.375rem',
-    appearance: 'none' as const,
-    WebkitAppearance: 'none' as const,
-  } as const,
-  selectArrow: {
-    position: 'absolute' as const,
-    right: '0.875rem',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none' as const,
-    color: '#09090b',
-    fontSize: '1.1rem',
   } as const,
   modalButtons: {
     display: 'flex',

@@ -28,6 +28,8 @@ interface BestChartsProps {
 const COLORS = {
   win: '#16a34a',
   loss: '#dc2626',
+  halfwin: '#4ade80',
+  halfloss: '#f87171',
   pending: '#9ca3af',
   reset: '#f59e0b',
 };
@@ -35,21 +37,27 @@ const COLORS = {
 function computeStats(bets: Bet[]) {
   let wins = 0;
   let losses = 0;
+  let halfwins = 0;
+  let halflosses = 0;
   let pending = 0;
   let resets = 0;
   for (const bet of bets) {
     if (getResult(bet) === 1) wins++;
     else if (getResult(bet) === 0) losses++;
     else if (getResult(bet) === 2) resets++;
+    else if (getResult(bet) === 3) halfwins++;
+    else if (getResult(bet) === 4) halflosses++;
     else pending++;
   }
-  return {wins, losses, pending, resets, total: bets.length};
+  return {wins, losses, halfwins, halflosses, pending, resets, total: bets.length};
 }
 
-function buildChartData(stats: {wins: number; losses: number; pending: number; resets: number}) {
+function buildChartData(stats: {wins: number; losses: number; halfwins: number; halflosses: number; pending: number; resets: number}) {
   const data = [];
   if (stats.wins > 0) data.push({name: 'Vitória', value: stats.wins, color: COLORS.win});
+  if (stats.halfwins > 0) data.push({name: 'Meia Vitória', value: stats.halfwins, color: COLORS.halfwin});
   if (stats.losses > 0) data.push({name: 'Derrota', value: stats.losses, color: COLORS.loss});
+  if (stats.halflosses > 0) data.push({name: 'Meia Derrota', value: stats.halflosses, color: COLORS.halfloss});
   if (stats.resets > 0) data.push({name: 'Reembolso', value: stats.resets, color: COLORS.reset});
   if (stats.pending > 0) data.push({name: 'Pendente', value: stats.pending, color: COLORS.pending});
   return data;
@@ -72,8 +80,9 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
 
   const monthStats = useMemo(() => computeStats(monthBets), [monthBets]);
   const monthData = useMemo(() => buildChartData(monthStats), [monthStats]);
-  const monthResolved = monthStats.wins + monthStats.losses;
-  const monthRate = monthResolved > 0 ? ((monthStats.wins / monthResolved) * 100).toFixed(1) : '—';
+  const monthResolved = monthStats.wins + monthStats.losses + monthStats.halfwins + monthStats.halflosses;
+  const monthWinValue = monthStats.wins + monthStats.halfwins * 0.5;
+  const monthRate = monthResolved > 0 ? ((monthWinValue / monthResolved) * 100).toFixed(1) : '—';
 
   const monthLabel = new Intl.DateTimeFormat('pt-BR', {
     timeZone: 'America/Fortaleza',
@@ -89,10 +98,12 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
     ? new Date(currentDate + 'T12:00:00').toLocaleDateString('pt-BR')
     : '';
 
-  const allTimeResolved = allTimeStats.wins + allTimeStats.losses;
-  const dayResolved = dayStats.wins + dayStats.losses;
-  const allTimeRate = allTimeResolved > 0 ? ((allTimeStats.wins / allTimeResolved) * 100).toFixed(1) : '—';
-  const dayRate = dayResolved > 0 ? ((dayStats.wins / dayResolved) * 100).toFixed(1) : '—';
+  const allTimeResolved = allTimeStats.wins + allTimeStats.losses + allTimeStats.halfwins + allTimeStats.halflosses;
+  const dayResolved = dayStats.wins + dayStats.losses + dayStats.halfwins + dayStats.halflosses;
+  const allTimeWinValue = allTimeStats.wins + allTimeStats.halfwins * 0.5;
+  const dayWinValue = dayStats.wins + dayStats.halfwins * 0.5;
+  const allTimeRate = allTimeResolved > 0 ? ((allTimeWinValue / allTimeResolved) * 100).toFixed(1) : '—';
+  const dayRate = dayResolved > 0 ? ((dayWinValue / dayResolved) * 100).toFixed(1) : '—';
 
   return (
     <div style={styles.container}>
@@ -139,6 +150,16 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
               <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#dc2626'}}>
                 {allTimeStats.losses}D
               </span>
+              {allTimeStats.halfwins > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#dcfce7', color: '#4ade80'}}>
+                  {allTimeStats.halfwins}½V
+                </span>
+              )}
+              {allTimeStats.halflosses > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#f87171'}}>
+                  {allTimeStats.halflosses}½D
+                </span>
+              )}
               {allTimeStats.resets > 0 && (
                 <span style={{...styles.statBadge, backgroundColor: '#fef3c7', color: '#d97706'}}>
                   {allTimeStats.resets}R
@@ -199,6 +220,16 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
               <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#dc2626'}}>
                 {monthStats.losses}D
               </span>
+              {monthStats.halfwins > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#dcfce7', color: '#4ade80'}}>
+                  {monthStats.halfwins}½V
+                </span>
+              )}
+              {monthStats.halflosses > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#f87171'}}>
+                  {monthStats.halflosses}½D
+                </span>
+              )}
               {monthStats.resets > 0 && (
                 <span style={{...styles.statBadge, backgroundColor: '#fef3c7', color: '#d97706'}}>
                   {monthStats.resets}R
@@ -259,6 +290,16 @@ export default function BestCharts({allBets, dayBets, currentDate}: BestChartsPr
               <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#dc2626'}}>
                 {dayStats.losses}D
               </span>
+              {dayStats.halfwins > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#dcfce7', color: '#4ade80'}}>
+                  {dayStats.halfwins}½V
+                </span>
+              )}
+              {dayStats.halflosses > 0 && (
+                <span style={{...styles.statBadge, backgroundColor: '#fee2e2', color: '#f87171'}}>
+                  {dayStats.halflosses}½D
+                </span>
+              )}
               {dayStats.resets > 0 && (
                 <span style={{...styles.statBadge, backgroundColor: '#fef3c7', color: '#d97706'}}>
                   {dayStats.resets}R

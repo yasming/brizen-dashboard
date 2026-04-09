@@ -322,6 +322,16 @@ export default function Dashboard() {
                         title="Lose"
                       >✕</button>
                       <button
+                        onClick={() => handleResultChange(f.id(bet), 3)}
+                        style={{ ...styles.resultButton, ...(f.result(bet) === 3 ? styles.resultButtonActiveHalfWin : {}) }}
+                        title="Half Win"
+                      >½✓</button>
+                      <button
+                        onClick={() => handleResultChange(f.id(bet), 4)}
+                        style={{ ...styles.resultButton, ...(f.result(bet) === 4 ? styles.resultButtonActiveHalfLose : {}) }}
+                        title="Half Loss"
+                      >½✕</button>
+                      <button
                         onClick={() => handleResultChange(f.id(bet), 2)}
                         style={{ ...styles.resultButton, ...(f.result(bet) === 2 ? styles.resultButtonActiveReset : {}) }}
                         title="Reset"
@@ -511,17 +521,30 @@ const styles = {
   resultButtonActive: {
     backgroundColor: '#16a34a',
     color: 'white',
-    borderColor: '#16a34a',
+    border: '1px solid #09090b',
+    boxShadow: 'inset 0 0 0 1px #09090b',
   } as const,
   resultButtonActiveLose: {
     backgroundColor: '#dc2626',
     color: 'white',
-    borderColor: '#dc2626',
+    border: '1px solid #09090b',
+  } as const,
+  resultButtonActiveHalfWin: {
+    backgroundColor: '#16a34a',
+    color: 'white',
+    border: '1px solid #09090b',
+    opacity: 0.6,
+  } as const,
+  resultButtonActiveHalfLose: {
+    backgroundColor: '#dc2626',
+    color: 'white',
+    border: '1px solid #09090b',
+    opacity: 0.6,
   } as const,
   resultButtonActiveReset: {
     backgroundColor: '#f59e0b',
     color: 'white',
-    borderColor: '#f59e0b',
+    border: '1px solid #09090b',
   } as const,
   pagination: {
     display: 'flex',
